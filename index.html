@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Complete Interview & Practice Guide</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#222;background:#f5f7fb;margin:0}
+.container{max-width:1150px;margin:auto;background:#fff;padding:35px 50px}
+h1,h2,h3{color:#17365d} h1{font-size:34px;border-bottom:4px solid #17365d;padding-bottom:12px}
+h2{margin-top:42px;border-bottom:2px solid #d9e2f3;padding-bottom:7px}
+h3{margin-top:28px}
+code{background:#eef2f7;padding:2px 5px;border-radius:4px}
+pre{background:#17202a;color:#f8f9f9;padding:16px;border-radius:8px;overflow:auto}
+table{border-collapse:collapse;width:100%;margin:15px 0}
+th,td{border:1px solid #ccd4df;padding:9px;text-align:left}
+th{background:#eaf0f8}
+.note{background:#fff8dc;border-left:5px solid #e1b12c;padding:12px 16px;margin:15px 0}
+.tip{background:#e9f7ef;border-left:5px solid #27ae60;padding:12px 16px;margin:15px 0}
+.warn{background:#fdecea;border-left:5px solid #e74c3c;padding:12px 16px;margin:15px 0}
+.small{color:#555;font-size:14px}
+.badge{display:inline-block;background:#eaf0f8;padding:4px 8px;border-radius:12px;margin:3px}
+.toc a{color:#17365d;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>SQL Complete Guide: Fundamentals to Interview Level</h1>
+<p>This guide covers every topic in the requested list with explanations, syntax, examples, interview notes, and common pitfalls. Examples use mostly standard SQL; exact syntax can differ between SQL Server, MySQL, PostgreSQL, Oracle, and other databases.</p>
+
+<div class="note"><b>Important:</b> <code>LIMIT</code>, <code>DATE_ADD</code>, <code>MONTHS_BETWEEN</code>, and some date functions are database-specific. SQL Server commonly uses <code>TOP</code>/<code>OFFSET FETCH</code>, while PostgreSQL/MySQL use <code>LIMIT</code>.</div>
+
+<h2>1. SELECT, WHERE, ORDER BY</h2>
+<h3>SELECT</h3>
+<p><b>SELECT</b> chooses columns or expressions to return.</p>
+<pre>SELECT name, salary
+FROM employees;</pre>
+<p>Return all columns:</p>
+<pre>SELECT * FROM employees;</pre>
+<h3>WHERE</h3>
+<p><b>WHERE</b> filters rows before grouping and aggregation.</p>
+<pre>SELECT name, salary
+FROM employees
+WHERE salary &gt; 50000;</pre>
+<h3>ORDER BY</h3>
+<p><b>ORDER BY</b> sorts the final result. Default is ascending.</p>
+<pre>SELECT name, salary
+FROM employees
+ORDER BY salary DESC;</pre>
+<p>Multiple columns:</p>
+<pre>SELECT name, department_id, salary
+FROM employees
+ORDER BY department_id ASC, salary DESC;</pre>
+<div class="tip"><b>Interview point:</b> <code>WHERE</code> filters rows; <code>ORDER BY</code> sorts the result. An alias can generally be used in ORDER BY, but not in WHERE at the same query level.</div>
+
+<h2>2. DISTINCT</h2>
+<p><b>DISTINCT</b> removes duplicate result rows.</p>
+<pre>SELECT DISTINCT department_id
+FROM employees;</pre>
+<p>With multiple columns, uniqueness is based on the combination:</p>
+<pre>SELECT DISTINCT department_id, job_title
+FROM employees;</pre>
+<div class="warn">DISTINCT does not mean “find duplicate records.” It removes duplicates from the returned result.</div>
+
+<h2>3. LIMIT</h2>
+<p><b>LIMIT</b> restricts the number of rows returned in MySQL/PostgreSQL.</p>
+<pre>SELECT *
+FROM employees
+ORDER BY salary DESC
+LIMIT 5;</pre>
+<p>Top 5 is meaningful only with a deterministic ordering. SQL Server uses <code>TOP (5)</code> or <code>OFFSET ... FETCH</code>.</p>
+
+<h2>4. CASE WHEN</h2>
+<p><b>CASE</b> implements conditional logic and returns a value.</p>
+<pre>SELECT name, salary,
+       CASE
+         WHEN salary &gt;= 100000 THEN 'High'
+         WHEN salary &gt;= 60000 THEN 'Medium'
+         ELSE 'Low'
+       END AS salary_band
+FROM employees;</pre>
+<p>Simple CASE:</p>
+<pre>SELECT name,
+       CASE department_id
+         WHEN 10 THEN 'IT'
+         WHEN 20 THEN 'HR'
+         ELSE 'Other'
+       END AS department_name
+FROM employees;</pre>
+<div class="tip">CASE is commonly used for categorization, conditional aggregation, custom sorting, and conditional calculations.</div>
+
+<h2>5. NULL Handling</h2>
+<p><b>NULL</b> means missing/unknown value. It is not equal to zero, an empty string, or a normal value.</p>
+<p>Correct:</p>
+<pre>SELECT *
+FROM employees
+WHERE manager_id IS NULL;</pre>
+<p>Incorrect:</p>
+<pre>-- Wrong
+WHERE manager_id = NULL;</pre>
+<p>For non-NULL:</p>
+<pre>WHERE manager_id IS NOT NULL;</pre>
+<div class="note"><b>Three-valued logic:</b> comparisons involving NULL generally produce UNKNOWN. WHERE keeps only TRUE rows.</div>
+
+<h2>6. COALESCE and NULLIF</h2>
+<h3>COALESCE</h3>
+<p>Returns the first non-NULL expression.</p>
+<pre>SELECT name,
+       COALESCE(phone, email, 'No contact') AS contact
+FROM customers;</pre>
+<h3>NULLIF</h3>
+<p>Returns NULL when two expressions are equal; otherwise returns the first expression.</p>
+<pre>SELECT NULLIF(discount, 0) AS discount
+FROM products;</pre>
+<p>A common division-by-zero pattern:</p>
+<pre>SELECT sales / NULLIF(quantity, 0) AS average_price
+FROM orders;</pre>
+
+<h2>7. String Functions</h2>
+<table><tr><th>Function</th><th>Purpose</th><th>Example</th></tr>
+<tr><td>UPPER</td><td>Uppercase</td><td><code>UPPER(name)</code></td></tr>
+<tr><td>LOWER</td><td>Lowercase</td><td><code>LOWER(email)</code></td></tr>
+<tr><td>TRIM</td><td>Remove surrounding spaces</td><td><code>TRIM(name)</code></td></tr>
+<tr><td>LENGTH / LEN</td><td>String length</td><td><code>LENGTH(name)</code></td></tr>
+<tr><td>SUBSTRING</td><td>Extract part of string</td><td><code>SUBSTRING(name,1,3)</code></td></tr>
+<tr><td>CONCAT</td><td>Combine strings</td><td><code>CONCAT(first_name,' ',last_name)</code></td></tr>
+<tr><td>REPLACE</td><td>Replace text</td><td><code>REPLACE(phone,'-','')</code></td></tr>
+</table>
+<pre>SELECT UPPER(TRIM(name)) AS clean_name,
+       CONCAT(first_name, ' ', last_name) AS full_name
+FROM employees;</pre>
+
+<h2>8. Date and Time Functions</h2>
+<p>Date syntax varies substantially by database.</p>
+<h3>DATE_ADD</h3>
+<pre>-- MySQL style
+SELECT DATE_ADD(order_date, INTERVAL 7 DAY)
+FROM orders;</pre>
+<h3>DATE_SUB</h3>
+<pre>-- MySQL style
+SELECT DATE_SUB(order_date, INTERVAL 30 DAY)
+FROM orders;</pre>
+<h3>DATEDIFF</h3>
+<pre>-- MySQL-style example
+SELECT DATEDIFF(end_date, start_date) AS days_taken
+FROM projects;</pre>
+<h3>MONTHS_BETWEEN</h3>
+<pre>-- Oracle style
+SELECT MONTHS_BETWEEN(end_date, start_date)
+FROM contracts;</pre>
+<h3>YEAR, MONTH, DAY</h3>
+<pre>SELECT YEAR(order_date) AS order_year,
+       MONTH(order_date) AS order_month,
+       DAY(order_date) AS order_day
+FROM orders;</pre>
+<h3>DATE_TRUNC</h3>
+<p>Truncates a timestamp/date to a requested boundary in databases that support it, such as PostgreSQL.</p>
+<pre>SELECT DATE_TRUNC('month', order_date) AS month_start
+FROM orders;</pre>
+<div class="tip">Interview tip: know the concept—adding/subtracting intervals, finding date differences, extracting date parts, and grouping dates—not just one vendor's syntax.</div>
+
+<h2>9. Type Casting</h2>
+<p>Converts one data type to another.</p>
+<pre>SELECT CAST(salary AS DECIMAL(12,2))
+FROM employees;</pre>
+<p>Some systems also support:</p>
+<pre>SELECT CAST(order_date AS DATE)
+FROM orders;</pre>
+<p>SQL Server additionally has <code>CONVERT()</code> and <code>TRY_CAST()</code>.</p>
+
+<h2>10. Mathematical Functions</h2>
+<table><tr><th>Function</th><th>Purpose</th></tr>
+<tr><td>ABS(x)</td><td>Absolute value</td></tr>
+<tr><td>ROUND(x,n)</td><td>Round number</td></tr>
+<tr><td>CEILING(x)</td><td>Round upward</td></tr>
+<tr><td>FLOOR(x)</td><td>Round downward</td></tr>
+<tr><td>POWER(x,y)</td><td>x raised to y</td></tr>
+<tr><td>MOD(x,y)</td><td>Remainder; syntax varies</td></tr>
+</table>
+<pre>SELECT product,
+       ROUND(price * quantity, 2) AS total
+FROM order_items;</pre>
+
+<h2>11. LIKE, IN, BETWEEN</h2>
+<h3>LIKE</h3>
+<pre>SELECT *
+FROM employees
+WHERE name LIKE 'A%';</pre>
+<p><code>%</code> means zero or more characters; <code>_</code> means exactly one character.</p>
+<h3>IN</h3>
+<pre>SELECT *
+FROM employees
+WHERE department_id IN (10, 20, 30);</pre>
+<h3>BETWEEN</h3>
+<pre>SELECT *
+FROM employees
+WHERE salary BETWEEN 50000 AND 80000;</pre>
+<div class="warn">BETWEEN is inclusive at both ends in standard SQL comparisons.</div>
+
+<h2>12. EXISTS / NOT EXISTS</h2>
+<p><b>EXISTS</b> checks whether a correlated or uncorrelated subquery returns at least one row.</p>
+<pre>SELECT c.customer_id, c.name
+FROM customers c
+WHERE EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.customer_id
+);</pre>
+<p>This returns customers who have at least one order.</p>
+<pre>SELECT c.customer_id, c.name
+FROM customers c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.customer_id
+);</pre>
+<p>This returns customers with no matching order.</p>
+<div class="tip">EXISTS is especially useful when you only care whether a related row exists, not how many rows exist.</div>
+
+<h2>13. INNER JOIN</h2>
+<p>Returns only rows having matching values on both sides.</p>
+<pre>SELECT e.name, d.department_name
+FROM employees e
+INNER JOIN departments d
+  ON d.department_id = e.department_id;</pre>
+
+<h2>14. LEFT JOIN</h2>
+<p>Returns every row from the left table plus matching rows from the right. No match gives NULL for right-side columns.</p>
+<pre>SELECT c.name, o.order_id
+FROM customers c
+LEFT JOIN orders o
+  ON o.customer_id = c.customer_id;</pre>
+<p>Find customers with no orders:</p>
+<pre>SELECT c.name
+FROM customers c
+LEFT JOIN orders o
+  ON o.customer_id = c.customer_id
+WHERE o.order_id IS NULL;</pre>
+
+<h2>15. RIGHT JOIN</h2>
+<p>Returns every row from the right table plus matching rows from the left.</p>
+<pre>SELECT e.name, d.department_name
+FROM employees e
+RIGHT JOIN departments d
+  ON d.department_id = e.department_id;</pre>
+<div class="tip">A RIGHT JOIN can usually be rewritten as a LEFT JOIN by swapping table positions. Many teams prefer LEFT JOIN for readability.</div>
+
+<h2>16. FULL OUTER JOIN</h2>
+<p>Returns matching rows plus unmatched rows from both tables.</p>
+<pre>SELECT e.name, d.department_name
+FROM employees e
+FULL OUTER JOIN departments d
+  ON d.department_id = e.department_id;</pre>
+
+<h2>17. CROSS JOIN</h2>
+<p>Produces the Cartesian product: every row from table A combined with every row from table B.</p>
+<pre>SELECT c.color, s.size
+FROM colors c
+CROSS JOIN sizes s;</pre>
+<p>If A has 5 rows and B has 4 rows, the result has 20 rows.</p>
+
+<h2>18. Self Join</h2>
+<p>A table is joined to itself, often for employee-manager or hierarchical relationships.</p>
+<pre>SELECT e.name AS employee,
+       m.name AS manager
+FROM employees e
+LEFT JOIN employees m
+  ON e.manager_id = m.emp_id;</pre>
+
+<h2>19. GROUP BY</h2>
+<p>GROUP BY combines rows into groups so aggregate functions can calculate one result per group.</p>
+<pre>SELECT department_id, COUNT(*) AS employee_count
+FROM employees
+GROUP BY department_id;</pre>
+<p>Multiple grouping columns:</p>
+<pre>SELECT department_id, job_title, COUNT(*) AS cnt
+FROM employees
+GROUP BY department_id, job_title;</pre>
+
+<h2>20. HAVING</h2>
+<p>HAVING filters groups after aggregation.</p>
+<pre>SELECT department_id, COUNT(*) AS employee_count
+FROM employees
+GROUP BY department_id
+HAVING COUNT(*) &gt; 5;</pre>
+<div class="tip"><b>Remember:</b> WHERE filters rows before GROUP BY; HAVING filters groups after GROUP BY.</div>
+
+<h2>21. COUNT</h2>
+<p><code>COUNT(*)</code> counts rows. <code>COUNT(column)</code> counts non-NULL values. <code>COUNT(DISTINCT column)</code> counts unique non-NULL values.</p>
+<pre>SELECT COUNT(*) AS rows,
+       COUNT(phone) AS phones,
+       COUNT(DISTINCT department_id) AS departments
+FROM employees;</pre>
+
+<h2>22. SUM</h2>
+<pre>SELECT customer_id, SUM(amount) AS total_spend
+FROM orders
+GROUP BY customer_id;</pre>
+<p>SUM normally ignores NULL values, though an all-NULL input can produce NULL depending on context/database behavior.</p>
+
+<h2>23. AVG</h2>
+<pre>SELECT department_id, AVG(salary) AS avg_salary
+FROM employees
+GROUP BY department_id;</pre>
+<p>AVG generally ignores NULL values in the input column.</p>
+
+<h2>24. MIN / MAX</h2>
+<pre>SELECT department_id,
+       MIN(salary) AS minimum_salary,
+       MAX(salary) AS maximum_salary
+FROM employees
+GROUP BY department_id;</pre>
+
+<h2>25. Window Functions Overview</h2>
+<p>Window functions calculate across related rows without collapsing them into one row per group.</p>
+<p>General structure:</p>
+<pre>function(...) OVER (
+    PARTITION BY ...
+    ORDER BY ...
+)</pre>
+<p><b>PARTITION BY</b> defines the group/window. <b>ORDER BY</b> defines the sequence inside that window.</p>
+
+<h2>26. ROW_NUMBER()</h2>
+<p>Assigns a unique sequential number within each partition.</p>
+<pre>SELECT name, department_id, salary,
+       ROW_NUMBER() OVER (
+         PARTITION BY department_id
+         ORDER BY salary DESC
+       ) AS rn
+FROM employees;</pre>
+<p>If two employees have equal salary, ROW_NUMBER still gives different numbers, so add a tie-breaker when deterministic ordering matters:</p>
+<pre>ORDER BY salary DESC, emp_id ASC</pre>
+
+<h2>27. RANK()</h2>
+<p>Equal values receive the same rank, and gaps appear after ties.</p>
+<pre>SELECT name, salary,
+       RANK() OVER (ORDER BY salary DESC) AS rnk
+FROM employees;</pre>
+<p>Example salaries 100, 100, 90 produce ranks 1, 1, 3.</p>
+
+<h2>28. DENSE_RANK()</h2>
+<p>Equal values receive the same rank, but no gaps occur.</p>
+<pre>SELECT name, salary,
+       DENSE_RANK() OVER (ORDER BY salary DESC) AS dr
+FROM employees;</pre>
+<p>Example salaries 100, 100, 90 produce ranks 1, 1, 2.</p>
+
+<table><tr><th>Salary</th><th>ROW_NUMBER</th><th>RANK</th><th>DENSE_RANK</th></tr>
+<tr><td>100</td><td>1</td><td>1</td><td>1</td></tr>
+<tr><td>100</td><td>2</td><td>1</td><td>1</td></tr>
+<tr><td>90</td><td>3</td><td>3</td><td>2</td></tr>
+<tr><td>80</td><td>4</td><td>4</td><td>3</td></tr>
+</table>
+
+<h2>29. LAG()</h2>
+<p>Returns a value from a previous row in the window.</p>
+<pre>SELECT order_date, amount,
+       LAG(amount) OVER (ORDER BY order_date) AS previous_amount
+FROM orders;</pre>
+<p>Useful for comparing current vs previous transaction, salary, sale, or event.</p>
+
+<h2>30. LEAD()</h2>
+<p>Returns a value from a following row.</p>
+<pre>SELECT order_date, amount,
+       LEAD(amount) OVER (ORDER BY order_date) AS next_amount
+FROM orders;</pre>
+
+<h2>31. FIRST_VALUE()</h2>
+<p>Returns the first value according to the window ordering.</p>
+<pre>SELECT department_id, name, salary,
+       FIRST_VALUE(name) OVER (
+         PARTITION BY department_id
+         ORDER BY salary DESC
+       ) AS highest_paid_employee
+FROM employees;</pre>
+
+<h2>32. LAST_VALUE()</h2>
+<p>Returns the last value according to the window frame. This is a common interview trap because the default frame in some databases may not mean “last row of the entire partition.” Explicitly specify the frame when needed.</p>
+<pre>SELECT department_id, name, salary,
+       LAST_VALUE(name) OVER (
+         PARTITION BY department_id
+         ORDER BY salary
+         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+       ) AS last_employee
+FROM employees;</pre>
+
+<h2>33. PARTITION BY</h2>
+<p>PARTITION BY divides rows into independent windows.</p>
+<pre>ROW_NUMBER() OVER (
+    PARTITION BY department_id
+    ORDER BY salary DESC
+)</pre>
+<p>Ranking restarts at 1 for every department.</p>
+
+<h2>34. ORDER BY in Window Functions</h2>
+<p>The ORDER BY inside OVER controls calculation sequence. It is different from the final query's ORDER BY.</p>
+<pre>SELECT name, salary,
+       LAG(salary) OVER (ORDER BY salary) AS previous_salary
+FROM employees
+ORDER BY name;</pre>
+<p>The window calculation is based on salary order, while the displayed result is sorted by name.</p>
+
+<h2>35. CTE</h2>
+<p>A Common Table Expression gives a temporary named result for one statement.</p>
+<pre>WITH dept_salary AS (
+    SELECT department_id, AVG(salary) AS avg_salary
+    FROM employees
+    GROUP BY department_id
+)
+SELECT *
+FROM dept_salary
+WHERE avg_salary &gt; 70000;</pre>
+<p>CTEs improve readability and can be recursive.</p>
+
+<h2>36. Subqueries</h2>
+<p>A subquery is a query nested inside another query.</p>
+<h3>Scalar subquery</h3>
+<pre>SELECT name, salary
+FROM employees
+WHERE salary &gt; (
+    SELECT AVG(salary) FROM employees
+);</pre>
+<h3>IN subquery</h3>
+<pre>SELECT *
+FROM employees
+WHERE department_id IN (
+    SELECT department_id
+    FROM departments
+    WHERE location = 'Hyderabad'
+);</pre>
+<h3>Correlated subquery</h3>
+<pre>SELECT e.name, e.salary
+FROM employees e
+WHERE e.salary &gt; (
+    SELECT AVG(e2.salary)
+    FROM employees e2
+    WHERE e2.department_id = e.department_id
+);</pre>
+
+<h2>37. UNION</h2>
+<p>Combines result sets and removes duplicate rows.</p>
+<pre>SELECT email FROM customers
+UNION
+SELECT email FROM leads;</pre>
+<p>Both SELECT statements must have compatible column counts and types.</p>
+
+<h2>38. UNION ALL</h2>
+<p>Combines result sets while keeping duplicates.</p>
+<pre>SELECT email FROM customers
+UNION ALL
+SELECT email FROM leads;</pre>
+<div class="tip">UNION ALL is usually preferable when you do not need duplicate elimination because it avoids that extra distinct operation.</div>
+
+<h2>39. INTERSECT</h2>
+<p>Returns rows appearing in both result sets.</p>
+<pre>SELECT customer_id FROM online_customers
+INTERSECT
+SELECT customer_id FROM store_customers;</pre>
+
+<h2>40. EXCEPT</h2>
+<p>Returns rows from the first result set that are not present in the second.</p>
+<pre>SELECT customer_id FROM customers
+EXCEPT
+SELECT customer_id FROM orders;</pre>
+<p>This can identify customers who have never ordered, subject to NULL/type and database-specific set-operation behavior.</p>
+
+<h2>41. SQL Query Execution Order</h2>
+<p>A useful logical processing order is:</p>
+<ol>
+<li>FROM</li>
+<li>JOIN / ON</li>
+<li>WHERE</li>
+<li>GROUP BY</li>
+<li>HAVING</li>
+<li>SELECT</li>
+<li>DISTINCT</li>
+<li>ORDER BY</li>
+<li>LIMIT / OFFSET or equivalent</li>
+</ol>
+<pre>SELECT department_id, COUNT(*) AS cnt
+FROM employees
+WHERE salary &gt; 50000
+GROUP BY department_id
+HAVING COUNT(*) &gt; 2
+ORDER BY cnt DESC;</pre>
+<p>Conceptually, SQL first identifies source rows, joins them, filters rows, groups them, filters groups, calculates the SELECT list, removes duplicates if requested, sorts, and finally limits the output.</p>
+<div class="warn">This is logical processing order, not a promise of the physical execution plan used by the database optimizer.</div>
+
+<h2>42. Performance Techniques</h2>
+<h3>1. Indexing</h3>
+<p>Index columns frequently used for selective WHERE predicates, joins, and sometimes ORDER BY/GROUP BY. Avoid blindly indexing every column because indexes consume storage and make writes more expensive.</p>
+<pre>CREATE INDEX idx_orders_customer
+ON orders(customer_id);</pre>
+<h3>2. Avoid SELECT *</h3>
+<pre>-- Prefer
+SELECT customer_id, name
+FROM customers;</pre>
+<h3>3. Filter early when appropriate</h3>
+<p>Use selective predicates to reduce rows that need to be processed, while relying on the optimizer to transform queries when possible.</p>
+<h3>4. Avoid functions on indexed filter columns when they prevent index use</h3>
+<pre>-- Often less index-friendly
+WHERE YEAR(order_date) = 2026
+
+-- Often better as a range
+WHERE order_date &gt;= '2026-01-01'
+  AND order_date &lt; '2027-01-01'</pre>
+<h3>5. Use EXISTS when existence is all you need</h3>
+<p>Do not create large intermediate results merely to test whether a matching row exists.</p>
+<h3>6. Use UNION ALL when duplicate removal is unnecessary</h3>
+<h3>7. Avoid unnecessary DISTINCT</h3>
+<p>DISTINCT may require sorting or hashing.</p>
+<h3>8. Inspect execution plans</h3>
+<p>Use your database's EXPLAIN/EXPLAIN ANALYZE or graphical execution plan tools.</p>
+<h3>9. Avoid accidental row multiplication</h3>
+<p>Joining one-to-many tables can multiply rows and inflate SUM/COUNT. Understand the cardinality before aggregating.</p>
+<h3>10. SARGability</h3>
+<p>A predicate is generally more index-friendly when the indexed column is compared directly to a value/range rather than transformed by a function.</p>
+<div class="tip"><b>Interview answer:</b> Performance is not “always add indexes.” Start by measuring with an execution plan, identify scans, expensive joins, cardinality problems, sorts, spills, and poor estimates, then optimize the actual bottleneck.</div>
+
+<h2>43. Practical Combined Example</h2>
+<p>Find the top two highest-paid employees in each department, including only departments whose average salary is above 60,000.</p>
+<pre>WITH dept_avg AS (
+    SELECT department_id, AVG(salary) AS avg_salary
+    FROM employees
+    GROUP BY department_id
+    HAVING AVG(salary) &gt; 60000
+),
+ranked AS (
+    SELECT e.name,
+           e.department_id,
+           e.salary,
+           DENSE_RANK() OVER (
+               PARTITION BY e.department_id
+               ORDER BY e.salary DESC
+           ) AS salary_rank
+    FROM employees e
+    INNER JOIN dept_avg d
+      ON d.department_id = e.department_id
+)
+SELECT name, department_id, salary, salary_rank
+FROM ranked
+WHERE salary_rank &lt;= 2
+ORDER BY department_id, salary_rank;</pre>
+<p>This example combines CTE, JOIN, GROUP BY, HAVING, AVG, DENSE_RANK, PARTITION BY, ORDER BY, WHERE, and final ORDER BY.</p>
+
+<h2>44. Interview Questions and Answers</h2>
+
+<h3>Q1. WHERE vs HAVING?</h3>
+<p><b>Answer:</b> WHERE filters individual rows before grouping. HAVING filters groups after GROUP BY and can directly use aggregate expressions.</p>
+<pre>WHERE salary &gt; 50000
+HAVING AVG(salary) &gt; 60000</pre>
+
+<h3>Q2. COUNT(*) vs COUNT(column)?</h3>
+<p><b>Answer:</b> COUNT(*) counts rows. COUNT(column) counts non-NULL values in that column.</p>
+
+<h3>Q3. COUNT(DISTINCT column)?</h3>
+<p><b>Answer:</b> Counts unique non-NULL values.</p>
+
+<h3>Q4. Difference between RANK, DENSE_RANK and ROW_NUMBER?</h3>
+<p><b>Answer:</b> ROW_NUMBER gives unique sequential numbers. RANK gives ties the same rank and leaves gaps. DENSE_RANK gives ties the same rank without gaps.</p>
+
+<h3>Q5. PARTITION BY vs GROUP BY?</h3>
+<p><b>Answer:</b> GROUP BY collapses rows into groups. PARTITION BY creates windows while keeping individual rows.</p>
+
+<h3>Q6. Find the second-highest salary.</h3>
+<pre>SELECT MAX(salary) AS second_highest
+FROM employees
+WHERE salary &lt; (
+    SELECT MAX(salary) FROM employees
+);</pre>
+<p>Or with DENSE_RANK:</p>
+<pre>WITH x AS (
+  SELECT salary,
+         DENSE_RANK() OVER (ORDER BY salary DESC) AS rnk
+  FROM employees
+)
+SELECT salary
+FROM x
+WHERE rnk = 2;</pre>
+
+<h3>Q7. Find the Nth-highest salary.</h3>
+<pre>WITH x AS (
+  SELECT salary,
+         DENSE_RANK() OVER (ORDER BY salary DESC) AS rnk
+  FROM employees
+)
+SELECT salary
+FROM x
+WHERE rnk = :N;</pre>
+
+<h3>Q8. Find duplicate emails.</h3>
+<pre>SELECT email, COUNT(*) AS cnt
+FROM customers
+GROUP BY email
+HAVING COUNT(*) &gt; 1;</pre>
+
+<h3>Q9. Return all rows containing duplicate emails.</h3>
+<pre>SELECT *
+FROM customers
+WHERE email IN (
+    SELECT email
+    FROM customers
+    GROUP BY email
+    HAVING COUNT(*) &gt; 1
+);</pre>
+
+<h3>Q10. Find customers with no orders.</h3>
+<pre>SELECT c.*
+FROM customers c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM orders o
+    WHERE o.customer_id = c.customer_id
+);</pre>
+
+<h3>Q11. Find employees earning above their department average.</h3>
+<pre>SELECT e.*
+FROM employees e
+WHERE e.salary &gt; (
+    SELECT AVG(e2.salary)
+    FROM employees e2
+    WHERE e2.department_id = e.department_id
+);</pre>
+
+<h3>Q12. Find highest-paid employee in each department.</h3>
+<pre>WITH x AS (
+  SELECT e.*,
+         DENSE_RANK() OVER (
+           PARTITION BY department_id
+           ORDER BY salary DESC
+         ) AS rnk
+  FROM employees e
+)
+SELECT *
+FROM x
+WHERE rnk = 1;</pre>
+
+<h3>Q13. Top 3 employees per department?</h3>
+<pre>WITH x AS (
+  SELECT e.*,
+         ROW_NUMBER() OVER (
+           PARTITION BY department_id
+           ORDER BY salary DESC, emp_id
+         ) AS rn
+  FROM employees e
+)
+SELECT *
+FROM x
+WHERE rn &lt;= 3;</pre>
+<p>If “top 3 salary levels” are required and ties should share the same rank, use DENSE_RANK instead.</p>
+
+<h3>Q14. Find each employee's previous salary.</h3>
+<pre>SELECT emp_id, name, salary,
+       LAG(salary) OVER (
+         PARTITION BY department_id
+         ORDER BY salary_change_date
+       ) AS previous_salary
+FROM employee_salary_history;</pre>
+
+<h3>Q15. Find the difference from the previous row.</h3>
+<pre>SELECT order_date, amount,
+       amount - LAG(amount) OVER (ORDER BY order_date) AS difference
+FROM orders;</pre>
+
+<h3>Q16. INNER JOIN vs LEFT JOIN?</h3>
+<p><b>Answer:</b> INNER JOIN returns only matching rows. LEFT JOIN returns all rows from the left table and matching right-side rows; unmatched right columns become NULL.</p>
+
+<h3>Q17. Why can a LEFT JOIN unexpectedly behave like an INNER JOIN?</h3>
+<pre>-- Can remove unmatched rows:
+SELECT c.*, o.order_id
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.status = 'PAID';</pre>
+<p>The WHERE condition rejects NULL order rows. If you need to preserve customers without paid orders, move the condition into ON:</p>
+<pre>LEFT JOIN orders o
+  ON o.customer_id = c.customer_id
+ AND o.status = 'PAID'</pre>
+
+<h3>Q18. UNION vs UNION ALL?</h3>
+<p><b>Answer:</b> UNION removes duplicate rows; UNION ALL keeps them and is generally cheaper when duplicate removal is unnecessary.</p>
+
+<h3>Q19. EXISTS vs IN?</h3>
+<p><b>Answer:</b> Both can express membership/existence, and optimizers may transform them similarly. EXISTS is often natural for correlated existence checks. Be especially careful with NULL semantics when using NOT IN; NOT EXISTS is often safer for anti-joins.</p>
+
+<h3>Q20. NOT IN vs NOT EXISTS and NULL?</h3>
+<p><b>Answer:</b> If the subquery used by NOT IN contains NULL, three-valued logic can cause surprising results. NOT EXISTS does not have that same NULL trap because it checks row existence.</p>
+
+<h3>Q21. What is a CTE?</h3>
+<p><b>Answer:</b> A named temporary query result available to a single statement. It improves readability and can support recursive queries. It is not automatically a permanent table.</p>
+
+<h3>Q22. CTE vs temporary table?</h3>
+<p><b>Answer:</b> A CTE is part of a statement's query expression. A temporary table is a database object with a temporary lifetime and can often be indexed or reused across multiple statements. Exact behavior depends on the database.</p>
+
+<h3>Q23. What is a correlated subquery?</h3>
+<p><b>Answer:</b> A subquery that references a column from the outer query, so logically it is evaluated in relation to each outer row.</p>
+
+<h3>Q24. What is a self join?</h3>
+<p><b>Answer:</b> Joining a table to itself using different aliases, commonly for employee-manager hierarchies or comparing rows in the same table.</p>
+
+<h3>Q25. What is a CROSS JOIN?</h3>
+<p><b>Answer:</b> Cartesian product. Every left row is paired with every right row. If there are m and n rows, the result can contain m × n rows.</p>
+
+<h3>Q26. Why doesn't WHERE salary = NULL work?</h3>
+<p><b>Answer:</b> NULL represents unknown/missing information, so equality comparison with NULL is UNKNOWN. Use IS NULL or IS NOT NULL.</p>
+
+<h3>Q27. COALESCE vs NULLIF?</h3>
+<p><b>Answer:</b> COALESCE chooses the first non-NULL expression. NULLIF converts an expression to NULL when it equals another expression.</p>
+
+<h3>Q28. How do you avoid division by zero?</h3>
+<pre>SELECT numerator / NULLIF(denominator, 0)
+FROM metrics;</pre>
+
+<h3>Q29. What is the logical SQL execution order?</h3>
+<p><b>Answer:</b> FROM/JOIN → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → LIMIT/OFFSET, with details varying by dialect and constructs.</p>
+
+<h3>Q30. Why can't I use a SELECT alias in WHERE?</h3>
+<p><b>Answer:</b> Logically WHERE is evaluated before SELECT, so the alias has not been produced at that logical stage. Use a subquery/CTE, or repeat the expression when appropriate.</p>
+
+<h3>Q31. Why can't I normally use a window-function alias in WHERE?</h3>
+<p><b>Answer:</b> Window functions are evaluated after WHERE in the logical processing model. Put the window calculation in a CTE/subquery, then filter the outer query.</p>
+<pre>WITH x AS (
+  SELECT e.*,
+         ROW_NUMBER() OVER (ORDER BY salary DESC) AS rn
+  FROM employees e
+)
+SELECT *
+FROM x
+WHERE rn &lt;= 3;</pre>
+
+<h3>Q32. How do you find the second-highest distinct salary?</h3>
+<p><b>Answer:</b> Use DENSE_RANK or MAX below MAX. DENSE_RANK handles duplicate salaries naturally.</p>
+
+<h3>Q33. How do you find duplicate records?</h3>
+<p><b>Answer:</b> Identify the business key with GROUP BY and HAVING COUNT(*) &gt; 1. Then join or use a subquery to retrieve full rows.</p>
+
+<h3>Q34. How do you delete duplicates while keeping one row?</h3>
+<pre>WITH d AS (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY email
+           ORDER BY customer_id
+         ) AS rn
+  FROM customers
+)
+DELETE FROM d
+WHERE rn &gt; 1;</pre>
+<p>Exact DELETE syntax for CTEs varies by database. Always test the SELECT version first and ensure the ordering identifies the row you intend to retain.</p>
+
+<h3>Q35. How do you calculate running total?</h3>
+<pre>SELECT order_date, amount,
+       SUM(amount) OVER (
+         ORDER BY order_date
+         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS running_total
+FROM orders;</pre>
+
+<h3>Q36. How do you calculate department total while keeping each employee row?</h3>
+<pre>SELECT name, department_id, salary,
+       SUM(salary) OVER (
+         PARTITION BY department_id
+       ) AS department_total
+FROM employees;</pre>
+
+<h3>Q37. What is a window frame?</h3>
+<p><b>Answer:</b> It defines which rows around the current row are included in a window calculation. Common clauses include ROWS or RANGE with boundaries such as UNBOUNDED PRECEDING and CURRENT ROW.</p>
+
+<h3>Q38. Why can LAST_VALUE return an unexpected result?</h3>
+<p><b>Answer:</b> Because the window frame may end at the current row rather than the last row of the full partition. Specify an appropriate frame when you need the final value across the entire partition.</p>
+
+<h3>Q39. What causes duplicate rows after a JOIN?</h3>
+<p><b>Answer:</b> Usually a one-to-many or many-to-many relationship. One row on one side can match multiple rows on the other side. Before joining, understand primary keys, foreign keys, and relationship cardinality.</p>
+
+<h3>Q40. Why can COUNT(*) after a LEFT JOIN be surprising?</h3>
+<p><b>Answer:</b> COUNT(*) counts the preserved left row even when the right side is unmatched. To count matching right-side records, count a non-NULL right-side key such as COUNT(o.order_id).</p>
+
+<h3>Q41. What is query SARGability?</h3>
+<p><b>Answer:</b> It describes writing predicates in forms that allow the optimizer to efficiently use indexes. Applying a function to an indexed column can prevent efficient index seeking in some situations.</p>
+
+<h3>Q42. What should you check when a query is slow?</h3>
+<p><b>Answer:</b> Start with the execution plan and actual measurements. Check table/index scans, expensive joins, poor cardinality estimates, large sorts/hashes, spills, missing or ineffective indexes, unnecessary columns, row multiplication, and blocking/locking where relevant.</p>
+
+<h3>Q43. WHERE vs ON in a JOIN?</h3>
+<p><b>Answer:</b> ON defines matching between joined tables. WHERE filters the rows produced by the FROM/JOIN phase. With outer joins, moving a predicate between ON and WHERE can change the result.</p>
+
+<h3>Q44. Can aggregate functions be used in WHERE?</h3>
+<p><b>Answer:</b> Not directly at the same query level because WHERE happens before GROUP BY aggregation. Use HAVING or a subquery/CTE.</p>
+
+<h3>Q45. Can aggregate functions be used in HAVING?</h3>
+<p><b>Answer:</b> Yes. Example: <code>HAVING COUNT(*) &gt; 5</code>.</p>
+
+<h3>Q46. GROUP BY vs DISTINCT?</h3>
+<p><b>Answer:</b> DISTINCT removes duplicate result rows. GROUP BY creates groups and is designed for aggregation, although GROUP BY without aggregates can also produce unique combinations.</p>
+
+<h3>Q47. How do you find customers who placed more than three orders?</h3>
+<pre>SELECT customer_id, COUNT(*) AS order_count
+FROM orders
+GROUP BY customer_id
+HAVING COUNT(*) &gt; 3;</pre>
+
+<h3>Q48. How do you find the latest order for every customer?</h3>
+<pre>WITH x AS (
+  SELECT o.*,
+         ROW_NUMBER() OVER (
+           PARTITION BY customer_id
+           ORDER BY order_date DESC, order_id DESC
+         ) AS rn
+  FROM orders o
+)
+SELECT *
+FROM x
+WHERE rn = 1;</pre>
+
+<h3>Q49. How do you find customers with their first order date?</h3>
+<pre>SELECT customer_id, MIN(order_date) AS first_order_date
+FROM orders
+GROUP BY customer_id;</pre>
+
+<h3>Q50. How do you find employees whose salary is higher than their manager?</h3>
+<pre>SELECT e.name AS employee,
+       e.salary AS employee_salary,
+       m.name AS manager,
+       m.salary AS manager_salary
+FROM employees e
+JOIN employees m
+  ON m.emp_id = e.manager_id
+WHERE e.salary &gt; m.salary;</pre>
+
+<h2>45. HackerRank-Style Practice Questions</h2>
+<ol>
+<li>Return all employees whose salary is greater than the company average.</li>
+<li>Return the second-highest distinct salary.</li>
+<li>Return the top 3 salaries in every department.</li>
+<li>Find duplicate emails and return their counts.</li>
+<li>Return all customers who never placed an order.</li>
+<li>Return customers with more than 3 orders.</li>
+<li>Return the highest-paid employee in each department, including ties.</li>
+<li>Return the latest order for each customer.</li>
+<li>Return each order and the previous order amount for that customer.</li>
+<li>Return a running total of sales by date.</li>
+<li>Return departments whose average salary is above the company average.</li>
+<li>Find employees who earn more than their department average.</li>
+<li>Find consecutive duplicate status records using LAG.</li>
+<li>Find customers who ordered in 2025 but not in 2026 using set operations.</li>
+<li>Find products that have never been ordered using NOT EXISTS.</li>
+<li>Return the percentage of employees in each department.</li>
+<li>Find the first and last order for every customer.</li>
+<li>Find the difference between current and previous month's sales.</li>
+<li>Find the top-selling product by revenue in each category.</li>
+<li>Find departments with no employees using a LEFT JOIN.</li>
+</ol>
+
+<h2>46. Quick Revision Cheat Sheet</h2>
+<table>
+<tr><th>Topic</th><th>Remember</th></tr>
+<tr><td>SELECT</td><td>Choose columns/expressions</td></tr>
+<tr><td>WHERE</td><td>Filter rows</td></tr>
+<tr><td>GROUP BY</td><td>Create groups</td></tr>
+<tr><td>HAVING</td><td>Filter groups</td></tr>
+<tr><td>ORDER BY</td><td>Sort result</td></tr>
+<tr><td>DISTINCT</td><td>Remove duplicate result rows</td></tr>
+<tr><td>INNER JOIN</td><td>Matching rows</td></tr>
+<tr><td>LEFT JOIN</td><td>All left + matches</td></tr>
+<tr><td>RIGHT JOIN</td><td>All right + matches</td></tr>
+<tr><td>FULL OUTER JOIN</td><td>All rows from both sides</td></tr>
+<tr><td>CROSS JOIN</td><td>Every combination</td></tr>
+<tr><td>EXISTS</td><td>At least one matching row</td></tr>
+<tr><td>COALESCE</td><td>First non-NULL value</td></tr>
+<tr><td>NULLIF</td><td>Return NULL when two values are equal</td></tr>
+<tr><td>ROW_NUMBER</td><td>Unique sequence</td></tr>
+<tr><td>RANK</td><td>Ties + gaps</td></tr>
+<tr><td>DENSE_RANK</td><td>Ties + no gaps</td></tr>
+<tr><td>LAG</td><td>Previous row</td></tr>
+<tr><td>LEAD</td><td>Next row</td></tr>
+<tr><td>CTE</td><td>Named query expression</td></tr>
+<tr><td>UNION</td><td>Combine + remove duplicates</td></tr>
+<tr><td>UNION ALL</td><td>Combine + keep duplicates</td></tr>
+<tr><td>INTERSECT</td><td>Rows common to both</td></tr>
+<tr><td>EXCEPT</td><td>First minus second</td></tr>
+</table>
+
+<h2>47. Final Interview Strategy</h2>
+<ol>
+<li>First understand the table grain: what does one row represent?</li>
+<li>Identify primary/foreign keys and relationship cardinality.</li>
+<li>Decide whether the problem needs filtering, aggregation, joining, or a window function.</li>
+<li>For “per department/customer/category” problems, immediately consider PARTITION BY or GROUP BY.</li>
+<li>For “top N per group,” consider ROW_NUMBER, RANK, or DENSE_RANK depending on tie requirements.</li>
+<li>For “no matching rows,” consider NOT EXISTS or LEFT JOIN ... IS NULL.</li>
+<li>For duplicates, GROUP BY + HAVING is the first pattern to recognize.</li>
+<li>For previous/next row comparisons, think LAG/LEAD.</li>
+<li>For multi-step logic, use a CTE to make each step clear.</li>
+<li>For performance questions, explain measurement and execution plans before recommending indexes.</li>
+</ol>
+
+<div class="tip"><b>Core patterns to memorize:</b><br>
+1. Duplicate detection → GROUP BY + HAVING COUNT(*) &gt; 1<br>
+2. Top N per group → ROW_NUMBER/DENSE_RANK + CTE<br>
+3. Missing relationship → NOT EXISTS or LEFT JOIN + IS NULL<br>
+4. Previous row → LAG<br>
+5. Next row → LEAD<br>
+6. Conditional aggregation → SUM(CASE WHEN ... THEN 1 ELSE 0 END)<br>
+7. Above-average → aggregate subquery/CTE or window AVG<br>
+8. Latest row per entity → ROW_NUMBER() OVER(PARTITION BY ... ORDER BY date DESC)
+</div>
+
+<p class="small">End of guide. Always verify vendor-specific syntax against the database engine used in the interview or project.</p>
+</div>
+</body>
+</html>
